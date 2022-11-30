@@ -1,20 +1,26 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 class DataModel {
-  final String humi;
-  final String light;
-  final String temp;
+  final double humi;
+  final double light;
+  final double temp;
   DataModel({
     required this.humi,
     required this.light,
     required this.temp,
   });
 
-  DataModel.fromJson(Map<String, Object?> json)
+  factory DataModel.create() {
+    return DataModel(
+      humi: 0,
+      light: 0,
+      temp: 0,
+    );
+  }
+
+  DataModel.fromJson(Map<dynamic, dynamic> json)
       : this(
-          humi: json['humi'] as String,
-          light: json['light'] as String,
-          temp: json['temp'] as String,
+          humi: checkDouble(json['humi']),
+          light: checkDouble(json['light']),
+          temp: checkDouble(json['temp']),
         );
   Map<String, Object?> toJson() {
     return {

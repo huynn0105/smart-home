@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:smart_home_app/core/model/control_model.dart';
@@ -7,7 +7,11 @@ import 'package:smart_home_app/ui/smart_device_box.dart';
 import 'package:smart_home_app/ui/threshold_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final String path;
+  const HomeScreen({
+    super.key,
+    required this.path,
+  });
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -17,32 +21,32 @@ class _HomeScreenState extends State<HomeScreen> {
   final double horizontalPadding = 40;
   final double verticalPadding = 25;
 
-  DocumentReference<ControlModel> controlDoc = FirebaseFirestore.instance
-      .collection('smart_home')
-      .doc('control')
-      .withConverter(
-          fromFirestore: (snapshots, _) =>
-              ControlModel.fromJson(snapshots.data()!),
-          toFirestore: (control, _) => control.toJson());
-  DocumentReference<DataModel> dataDoc = FirebaseFirestore.instance
-      .collection('smart_home')
-      .doc('data')
-      .withConverter(
-          fromFirestore: (snapshots, _) =>
-              DataModel.fromJson(snapshots.data()!),
-          toFirestore: (control, _) => control.toJson());
+  DatabaseReference ref = FirebaseDatabase.instance.ref('listNode');
+
+  late DatabaseReference controlDoc;
+  late DatabaseReference dataDoc;
+
+  @override
+  void initState() {
+    controlDoc = ref.child(widget.path).child('control');
+    dataDoc = ref.child(widget.path).child('data');
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: const BackButton(color: Colors.black),
         elevation: 0,
         backgroundColor: Colors.grey[100],
         actions: [
           InkWell(
             onTap: () {
               Navigator.of(context).push(MaterialPageRoute(
-                  builder: (context) => const ThresHoldScreen()));
+                  builder: (context) => ThresHoldScreen(
+                        path: widget.path,
+                      )));
             },
             child: Icon(
               Icons.settings,
@@ -63,30 +67,30 @@ class _HomeScreenState extends State<HomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "Welcome Home",
+                  "Welcome ${widget.path}",
                   style: TextStyle(fontSize: 20, color: Colors.grey.shade800),
                 ),
               ],
             ),
           ),
           const SizedBox(height: 15),
-          StreamBuilder<DocumentSnapshot<DataModel>>(
-              stream: dataDoc.snapshots(),
-              builder: (BuildContext context,
-                  AsyncSnapshot<DocumentSnapshot<DataModel>> snapshot) {
+          StreamBuilder(
+              stream: dataDoc.onValue,
+              builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.active) {
-                  DataModel dataModel = snapshot.requireData.data()!;
-
+                  DataModel dataModel = DataModel.fromJson(
+                      snapshot.requireData.snapshot.value as Map);
                   return Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
                       _DataBox(title: 'Temp', value: '${dataModel.temp} ℃'),
-                      _DataBox(title: 'Light', value: dataModel.light),
-                      _DataBox(title: 'Humi', value: dataModel.humi),
+                      _DataBox(
+                          title: 'Light', value: dataModel.light.toString()),
+                      _DataBox(title: 'Humi', value: dataModel.humi.toString()),
                     ],
                   );
                 }
-                return const CircularProgressIndicator();
+                return const Center(child: CircularProgressIndicator());
               }),
           const SizedBox(height: 15),
           const Padding(
@@ -98,11 +102,12 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 15),
           // smart devices grid
-          StreamBuilder<DocumentSnapshot<ControlModel>>(
-            stream: controlDoc.snapshots(),
+          StreamBuilder(
+            stream: controlDoc.onValue,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.active) {
-                final ControlModel controlModel = snapshot.requireData.data()!;
+                final ControlModel controlModel =
+                    ControlModel.fromJson(snapshot.data!.snapshot.value as Map);
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [

@@ -1,9 +1,15 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:smart_home_app/core/model/data_model.dart';
 
 class ThresHoldScreen extends StatefulWidget {
-  const ThresHoldScreen({super.key});
+  const ThresHoldScreen({
+    super.key,
+    required this.path,
+  });
+
+  final String path;
 
   @override
   State<ThresHoldScreen> createState() => _ThresHoldScreenState();
@@ -12,18 +18,24 @@ class ThresHoldScreen extends StatefulWidget {
 class _ThresHoldScreenState extends State<ThresHoldScreen> {
   late TextEditingController tempControllker, lightController, humiController;
 
-  DocumentReference<DataModel> thresholdDoc = FirebaseFirestore.instance
-      .collection('smart_home')
-      .doc('threshold')
-      .withConverter(
-          fromFirestore: (snapshots, _) =>
-              DataModel.fromJson(snapshots.data()!),
-          toFirestore: (data, _) => data.toJson());
+  // DocumentReference<DataModel> thresholdDoc = FirebaseFirestore.instance
+  //     .collection('smart_home')
+  //     .doc('threshold')
+  //     .withConverter(
+  //         fromFirestore: (snapshots, _) =>
+  //             DataModel.fromJson(snapshots.data()!),
+  //         toFirestore: (data, _) => data.toJson());
+
+  late DatabaseReference thresholdRef;
   @override
   void initState() {
-    tempControllker = TextEditingController();
-    lightController = TextEditingController();
-    humiController = TextEditingController();
+    tempControllker = TextEditingController(text: '0');
+    lightController = TextEditingController(text: '0');
+    humiController = TextEditingController(text: '0');
+    thresholdRef = FirebaseDatabase.instance
+        .ref('listNode')
+        .child(widget.path)
+        .child('threshold');
     super.initState();
   }
 
@@ -45,14 +57,15 @@ class _ThresHoldScreenState extends State<ThresHoldScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            StreamBuilder<DocumentSnapshot<DataModel>>(
-                stream: thresholdDoc.snapshots(),
+            StreamBuilder(
+                stream: thresholdRef.onValue,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.active) {
-                    DataModel dataModel = snapshot.requireData.data()!;
-                    tempControllker.text = dataModel.temp;
-                    lightController.text = dataModel.light;
-                    humiController.text = dataModel.humi;
+                    DataModel dataModel = DataModel.fromJson(
+                        snapshot.requireData.snapshot.value as Map);
+                    tempControllker.text = dataModel.temp.toString();
+                    lightController.text = dataModel.light.toString();
+                    humiController.text = dataModel.humi.toString();
                     return Column(
                       children: [
                         CustomTextField(
@@ -77,10 +90,10 @@ class _ThresHoldScreenState extends State<ThresHoldScreen> {
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () async {
-                await thresholdDoc.update(DataModel(
-                  humi: humiController.text,
-                  light: lightController.text,
-                  temp: tempControllker.text,
+                await thresholdRef.update(DataModel(
+                  humi:  double.parse(humiController.text),
+                  light: double.parse(lightController.text) ,
+                  temp: double.parse(tempControllker.text),
                 ).toJson());
 
                 Navigator.of(context).pop();

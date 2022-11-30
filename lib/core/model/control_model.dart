@@ -10,7 +10,16 @@ class ControlModel {
     required this.motor,
   });
 
-  ControlModel.fromJson(Map<String, Object?> json)
+  factory ControlModel.create() {
+    return ControlModel(
+      autoControl: false,
+      fan: false,
+      lamp: false,
+      motor: false,
+    );
+  }
+
+  ControlModel.fromJson(Map<dynamic, dynamic> json)
       : this(
           autoControl: json['autoControl']! as bool,
           fan: json['fan']! as bool,
@@ -20,7 +29,7 @@ class ControlModel {
 
   Map<String, Object?> toJson() {
     return {
-      'autoController': autoControl,
+      'autoControl': autoControl,
       'fan': fan,
       'lamp': lamp,
       'motor': motor,
