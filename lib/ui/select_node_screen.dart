@@ -54,6 +54,35 @@ class _SelectNodeScreenState extends State<SelectNodeScreen> {
                         .toList()
                         .map(
                           (e) => InkWell(
+                            onLongPress: () {
+                              showDialog(
+                                  context: context,
+                                  builder: (context) {
+                                    return AlertDialog(
+                                      content: Text('Bạn muốn xoá ${e.key} ?'),
+                                      actions: [
+                                        TextButton(
+                                            onPressed: () async {
+                                              await ref
+                                                  .child(e.key)
+                                                  .remove()
+                                                  .then((value) =>
+                                                      Navigator.of(context)
+                                                          .pop());
+                                            },
+                                            style: TextButton.styleFrom(
+                                              foregroundColor: Colors.red,
+                                            ),
+                                            child: const Text('Xoá')),
+                                        TextButton(
+                                            onPressed: () {
+                                              Navigator.of(context).pop();
+                                            },
+                                            child: const Text('Không')),
+                                      ],
+                                    );
+                                  });
+                            },
                             onTap: () {
                               Navigator.of(context).push(
                                 MaterialPageRoute(
